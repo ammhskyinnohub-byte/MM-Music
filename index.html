@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MM Music</title>
+    
+    <!-- PWA Manifest & App Info -->
+    <meta name="theme-color" content="#f43f5e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" id="manifest">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Apple Music Style Utilities */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .glass-panel {
+                background: rgba(30, 30, 30, 0.75);
+            }
+        }
+
+        /* Full Screen Player Transition */
+        .player-sheet {
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            transform: translateY(100%);
+        }
+        
+        .player-sheet.active {
+            transform: translateY(0);
+        }
+
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        /* Album Art Shadow */
+        .album-shadow {
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25), 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #ffffff;
+            margin-top: -4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-white text-black dark:bg-black dark:text-white h-screen flex flex-col overflow-hidden select-none">
+
+    <!-- Header / Library Section -->
+    <header class="px-5 pt-12 pb-4 flex justify-between items-end border-b border-gray-100 dark:border-gray-800 shrink-0">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight text-rose-500">MM Music</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">သင့်ဖုန်းထဲမှ သီချင်းများ</p>
+        </div>
+        <button id="addBtn" class="bg-rose-500 hover:bg-rose-600 active:scale-95 transition text-white p-3 rounded-full shadow-lg flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </button>
+        <!-- Hidden File Input -->
+        <input type="file" id="fileInput" multiple accept="audio/*" class="hidden">
+    </header>
+
+    <!-- Song List (Scrollable) -->
+    <main class="flex-1 overflow-y-auto px-5 py-2 pb-24" id="songList">
+        <div class="h-full flex flex-col items-center justify-center text-gray-400 text-center" id="emptyState">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 mb-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <p class="text-lg font-medium">သီချင်းများ မရှိသေးပါ</p>
+            <p class="text-sm mt-2">အပေါ်ဘက်ရှိ + ခလုတ်ကိုနှိပ်ပြီး<br>ဖုန်းထဲမှ သီချင်းများကို ရွေးချယ်ပါ</p>
+        </div>
+    </main>
+
+    <!-- Mini Player (Bottom Fixed) -->
+    <div id="miniPlayer" class="fixed bottom-0 left-0 right-0 glass-panel border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between cursor-pointer translate-y-full transition-transform duration-300 z-40">
+        <div class="flex items-center gap-3 flex-1 overflow-hidden" id="miniPlayerDetails">
+            <div class="w-12 h-12 rounded-md bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shrink-0 shadow-sm text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <div class="flex flex-col overflow-hidden pr-2">
+                <span id="miniTitle" class="font-semibold text-sm truncate">သီချင်းအမည်</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">Local File</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 shrink-0 px-2" id="miniControls">
+            <button id="miniPlayBtn" class="p-2 active:opacity-50 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+            </button>
+            <button id="miniNextBtn" class="p-2 active:opacity-50 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Full Screen Player (Apple Music Style Modal) -->
+    <div id="fullPlayer" class="player-sheet fixed inset-0 z-50 bg-gray-100 dark:bg-[#121212] flex flex-col">
+        <!-- Player Background Blur -->
+        <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40 blur-3xl">
+            <div class="w-full h-full bg-gradient-to-br from-rose-500/30 to-purple-600/30"></div>
+        </div>
+
+        <div class="relative z-10 flex flex-col h-full px-8 pt-12 pb-10">
+            <!-- Header Handle -->
+            <div class="flex justify-center mb-6" id="closeFullPlayerBtn">
+                <div class="w-10 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full cursor-pointer hover:bg-gray-400"></div>
+            </div>
+
+            <!-- Album Art -->
+            <div class="flex-1 flex items-center justify-center py-4">
+                <div id="albumArtContainer" class="w-64 h-64 sm:w-80 sm:h-80 bg-gradient-to-br from-rose-500 to-indigo-600 rounded-xl album-shadow flex items-center justify-center transition-transform duration-500 text-white opacity-80">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                </div>
+            </div>
+
+            <!-- Title & Controls Area -->
+            <div class="mt-auto pt-6">
+                <!-- Song Info & Favorite -->
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex flex-col overflow-hidden pr-4">
+                        <h2 id="fullTitle" class="text-2xl font-bold truncate">သီချင်းအမည်</h2>
+                        <p class="text-rose-500 text-lg font-medium mt-1 truncate">Unknown Artist</p>
+                    </div>
+                    <!-- Favorite Button -->
+                    <button id="favoriteBtn" class="text-gray-400 hover:text-rose-500 active:scale-90 transition flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-8">
+                    <input type="range" id="progressBar" value="0" min="0" max="100" step="0.1">
+                    <div class="flex justify-between text-xs font-medium text-gray-500 dark:text-gray-400 mt-2 px-1">
+                        <span id="currentTime">0:00</span>
+                        <span id="durationTime">-:--</span>
+                    </div>
+                </div>
+
+                <!-- Main Controls -->
+                <div class="flex items-center justify-center gap-8 mb-6">
+                    <button id="shuffleBtn" class="text-gray-400 hover:text-white transition active:scale-90 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                    </button>
+                    <button id="fullPrevBtn" class="active:scale-90 transition flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                    </button>
+                    <button id="fullPlayBtn" class="w-16 h-16 bg-black dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center active:scale-90 transition shadow-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 ml-1" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                    </button>
+                    <button id="fullNextBtn" class="active:scale-90 transition flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                    </button>
+                    <button id="repeatBtn" class="text-gray-400 hover:text-white transition active:scale-90 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Audio Element -->
+    <audio id="audioPlayer"></audio>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // SVG Icon Data for dynamic injection
+        const svgIcons = {
+            play: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 ml-1" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+            pause: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
+            musicNote: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+            equalizer: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-rose-500 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+            heartFill: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+            heartOutline: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+            heartFillSmall: '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-rose-500" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+            repeat: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+            repeatOnce: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>'
+        };
+
+        // App State
+        let playlist = [];
+        let currentIndex = 0;
+        let isPlaying = false;
+        let isShuffle = false;
+        let repeatMode = 0; // 0: none, 1: all, 2: one
+        let favoriteSongs = new Set(); // Store favorite song names
+        
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const addBtn = document.getElementById('addBtn');
+        const songList = document.getElementById('songList');
+        const emptyState = document.getElementById('emptyState');
+        const audioPlayer = document.getElementById('audioPlayer');
+        
+        const miniPlayer = document.getElementById('miniPlayer');
+        const miniPlayerDetails = document.getElementById('miniPlayerDetails');
+        const miniTitle = document.getElementById('miniTitle');
+        const miniPlayBtn = document.getElementById('miniPlayBtn');
+        const miniNextBtn = document.getElementById('miniNextBtn');
+        
+        const fullPlayer = document.getElementById('fullPlayer');
+        const closeFullPlayerBtn = document.getElementById('closeFullPlayerBtn');
+        const fullTitle = document.getElementById('fullTitle');
+        const fullPlayBtn = document.getElementById('fullPlayBtn');
+        const fullNextBtn = document.getElementById('fullNextBtn');
+        const fullPrevBtn = document.getElementById('fullPrevBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const repeatBtn = document.getElementById('repeatBtn');
+        const favoriteBtn = document.getElementById('favoriteBtn');
+        
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationTimeEl = document.getElementById('durationTime');
+        const albumArtContainer = document.getElementById('albumArtContainer');
+
+        // Clean filename (remove extension)
+        const formatTitle = (name) => name.replace(/\.[^/.]+$/, "");
+
+        // Format time (seconds to M:SS)
+        const formatTime = (seconds) => {
+            if (isNaN(seconds)) return "0:00";
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        };
+
+        // Initialize / Add Files
+        addBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files).filter(f => f.type.startsWith('audio/'));
+            if (files.length === 0) return;
+            
+            playlist = [...playlist, ...files];
+            renderList();
+        });
+
+        // Render Playlist UI
+        function renderList() {
+            if (playlist.length === 0) {
+                emptyState.style.display = 'flex';
+                return;
+            }
+            emptyState.style.display = 'none';
+            songList.innerHTML = '';
+            
+            playlist.forEach((file, index) => {
+                const title = formatTitle(file.name);
+                const isCurrent = (index === currentIndex && (isPlaying || audioPlayer.src));
+                const isFavorite = favoriteSongs.has(file.name);
+
+                const item = document.createElement('div');
+                item.className = `flex items-center gap-3 p-3 rounded-xl cursor-pointer transition mb-1 ${isCurrent ? 'bg-rose-50 dark:bg-rose-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-900/50'}`;
+                item.innerHTML = `
+                    <div class="w-12 h-12 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 relative">
+                        ${isCurrent && isPlaying ? svgIcons.equalizer : svgIcons.musicNote}
+                    </div>
+                    <div class="flex flex-col flex-1 overflow-hidden border-b border-gray-100 dark:border-gray-800 pb-3 mt-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium text-[15px] truncate pr-2 ${isCurrent ? 'text-rose-500' : ''}">${title}</span>
+                            ${isFavorite ? svgIcons.heartFillSmall : ''}
+                        </div>
+                        <span class="text-xs text-gray-500 mt-0.5">Local Audio</span>
+                    </div>
+                `;
+                item.onclick = () => loadAndPlaySong(index);
+                songList.appendChild(item);
+            });
+        }
+
+        // Playback Logic
+        function loadAndPlaySong(index) {
+            if (playlist.length === 0) return;
+            
+            if (audioPlayer.src) {
+                URL.revokeObjectURL(audioPlayer.src); // Free memory
+            }
+            
+            currentIndex = index;
+            const file = playlist[currentIndex];
+            const objectUrl = URL.createObjectURL(file);
+            audioPlayer.src = objectUrl;
+            audioPlayer.play();
+            
+            updateUI(file);
+            setupMediaSession(file);
+        }
+
+        function togglePlay() {
+            if (audioPlayer.paused) {
+                if (!audioPlayer.src && playlist.length > 0) loadAndPlaySong(0);
+                else audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        }
+
+        function playNext(isManual = true) {
+            if (playlist.length === 0) return;
+
+            // Handle Repeat One if auto advancing
+            if (!isManual && repeatMode === 2) {
+                audioPlayer.currentTime = 0;
+                audioPlayer.play();
+                return;
+            }
+
+            // Handle Shuffle
+            if (isShuffle) {
+                let nextIndex = currentIndex;
+                while (nextIndex === currentIndex && playlist.length > 1) {
+                    nextIndex = Math.floor(Math.random() * playlist.length);
+                }
+                loadAndPlaySong(nextIndex);
+                return;
+            }
+
+            // Normal Next
+            if (!isManual && repeatMode === 0 && currentIndex === playlist.length - 1) {
+                audioPlayer.pause(); // Stop at end of playlist
+                return;
+            }
+
+            currentIndex = (currentIndex + 1) % playlist.length;
+            loadAndPlaySong(currentIndex);
+        }
+
+        function playPrev() {
+            if (playlist.length === 0) return;
+            
+            if (audioPlayer.currentTime > 3) {
+                // Restart song if played for a while
+                audioPlayer.currentTime = 0;
+            } else {
+                // Go to previous song
+                currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+                loadAndPlaySong(currentIndex);
+            }
+        }
+
+        // Favorite Logic
+        function toggleFavorite() {
+            if (playlist.length === 0) return;
+            const currentFileName = playlist[currentIndex].name;
+            
+            if (favoriteSongs.has(currentFileName)) {
+                favoriteSongs.delete(currentFileName);
+            } else {
+                favoriteSongs.add(currentFileName);
+            }
+            updateFavoriteUI();
+            renderList(); // Update list view heart icon
+        }
+
+        function updateFavoriteUI() {
+            if (playlist.length === 0) return;
+            const currentFileName = playlist[currentIndex].name;
+            
+            if (favoriteSongs.has(currentFileName)) {
+                favoriteBtn.innerHTML = svgIcons.heartFill;
+                favoriteBtn.classList.add('text-rose-500');
+                favoriteBtn.classList.remove('text-gray-400');
+            } else {
+                favoriteBtn.innerHTML = svgIcons.heartOutline;
+                favoriteBtn.classList.add('text-gray-400');
+                favoriteBtn.classList.remove('text-rose-500');
+            }
+        }
+
+        // UI Updates
+        function updateUI(file) {
+            const title = formatTitle(file.name);
+            miniTitle.textContent = title;
+            fullTitle.textContent = title;
+            miniPlayer.classList.remove('translate-y-full');
+            
+            updateFavoriteUI();
+            renderList(); // Refresh list to show active state
+        }
+
+        function updatePlayPauseIcons() {
+            miniPlayBtn.innerHTML = isPlaying ? svgIcons.pause : svgIcons.play;
+            fullPlayBtn.innerHTML = isPlaying ? svgIcons.pause : svgIcons.play;
+            
+            if (isPlaying) {
+                albumArtContainer.style.transform = 'scale(1)';
+            } else {
+                albumArtContainer.style.transform = 'scale(0.85)';
+            }
+            renderList(); // Update equalizer icon in list
+        }
+
+        // Event Listeners for Audio
+        audioPlayer.addEventListener('play', () => { isPlaying = true; updatePlayPauseIcons(); });
+        audioPlayer.addEventListener('pause', () => { isPlaying = false; updatePlayPauseIcons(); });
+        audioPlayer.addEventListener('ended', () => playNext(false)); // Auto advance
+        
+        audioPlayer.addEventListener('timeupdate', () => {
+            const cur = audioPlayer.currentTime;
+            const dur = audioPlayer.duration;
+            currentTimeEl.textContent = formatTime(cur);
+            if (!isNaN(dur)) {
+                durationTimeEl.textContent = formatTime(dur);
+                progressBar.value = (cur / dur) * 100;
+            }
+        });
+
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            durationTimeEl.textContent = formatTime(audioPlayer.duration);
+        });
+
+        // Progress Bar Interaction
+        progressBar.addEventListener('input', (e) => {
+            const dur = audioPlayer.duration;
+            if (!isNaN(dur)) {
+                audioPlayer.currentTime = (e.target.value / 100) * dur;
+            }
+        });
+
+        // Button Listeners
+        miniPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
+        miniNextBtn.addEventListener('click', (e) => { e.stopPropagation(); playNext(true); });
+        
+        fullPlayBtn.addEventListener('click', togglePlay);
+        fullNextBtn.addEventListener('click', () => playNext(true));
+        fullPrevBtn.addEventListener('click', playPrev);
+        favoriteBtn.addEventListener('click', toggleFavorite);
+
+        // Shuffle & Repeat Handlers
+        shuffleBtn.addEventListener('click', () => {
+            isShuffle = !isShuffle;
+            shuffleBtn.classList.toggle('text-rose-500', isShuffle);
+            shuffleBtn.classList.toggle('text-gray-400', !isShuffle);
+        });
+
+        repeatBtn.addEventListener('click', () => {
+            repeatMode = (repeatMode + 1) % 3;
+            if (repeatMode === 0) {
+                // No Repeat
+                repeatBtn.innerHTML = svgIcons.repeat;
+                repeatBtn.className = 'text-gray-400 hover:text-white transition active:scale-90 flex items-center justify-center';
+            } else if (repeatMode === 1) {
+                // Repeat All
+                repeatBtn.innerHTML = svgIcons.repeat;
+                repeatBtn.className = 'text-rose-500 transition active:scale-90 flex items-center justify-center';
+            } else {
+                // Repeat One
+                repeatBtn.innerHTML = svgIcons.repeatOnce;
+                repeatBtn.className = 'text-rose-500 transition active:scale-90 flex items-center justify-center';
+            }
+        });
+
+        // Player Modals
+        miniPlayerDetails.addEventListener('click', () => {
+            fullPlayer.classList.add('active');
+        });
+        
+        closeFullPlayerBtn.addEventListener('click', () => {
+            fullPlayer.classList.remove('active');
+        });
+
+        // Android/OS Lockscreen Controls (Media Session API)
+        function setupMediaSession(file) {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: formatTitle(file.name),
+                    artist: 'MM Music App',
+                    album: 'Local Storage',
+                    artwork: [
+                        { src: 'https://placehold.co/512x512/f43f5e/ffffff.png?text=MM', sizes: '512x512', type: 'image/png' }
+                    ]
+                });
+                navigator.mediaSession.setActionHandler('play', togglePlay);
+                navigator.mediaSession.setActionHandler('pause', togglePlay);
+                navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+                navigator.mediaSession.setActionHandler('nexttrack', () => playNext(true));
+            }
+        }
+
+        // ==========================================
+        // PWA Setup (Make it Installable via Chrome)
+        // ==========================================
+        
+        // 1. Generate Manifest dynamically for single-file structure
+        const manifestData = {
+            "name": "MM Music",
+            "short_name": "MM Music",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#000000",
+            "theme_color": "#f43f5e",
+            "description": "Local Audio Player",
+            "icons": [{
+                "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23f43f5e'/><path d='M256 128v180a64 64 0 1064 64V192h80v-64H256z' fill='white'/></svg>",
+                "sizes": "512x512",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
+        document.getElementById('manifest').href = URL.createObjectURL(manifestBlob);
+
+        // 2. Register Service Worker dynamically
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', (e) => self.skipWaiting());
+                self.addEventListener('activate', (e) => self.clients.claim());
+                self.addEventListener('fetch', (e) => {
+                    // Minimal fetch handler required for PWA install prompt
+                    e.respondWith(fetch(e.request).catch(() => new Response('Offline')));
+                });
+            `;
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob))
+                .then(reg => console.log('PWA Service Worker Registered'))
+                .catch(err => console.log('SW Error', err));
+        }
+    </script>
+</body>
+</html>
