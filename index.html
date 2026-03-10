@@ -81,7 +81,24 @@
         }
     </style>
 </head>
-<body class="bg-white text-black dark:bg-black dark:text-white h-screen flex flex-col overflow-hidden select-none">
+<body class="bg-white text-black dark:bg-black dark:text-white h-screen flex flex-col overflow-hidden select-none relative">
+
+    <!-- YouTube Modal -->
+    <div id="ytModal" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm hidden items-center justify-center px-4 transition-opacity duration-300 opacity-0">
+        <div class="bg-white dark:bg-[#1c1c1e] rounded-2xl p-6 w-full max-w-sm shadow-2xl scale-95 transition-transform duration-300 transform" id="ytModalContent">
+            <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">YouTube မှထည့်ရန်</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">YouTube Video Link ကို အောက်တွင် ထည့်ပါ။</p>
+            <input type="text" id="ytUrlInput" placeholder="https://youtube.com/watch?v=..." class="w-full bg-gray-100 dark:bg-gray-800 text-black dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 mb-1 focus:ring-2 focus:ring-rose-500 outline-none">
+            <p id="ytErrorMsg" class="text-xs text-red-500 mb-4 h-4"></p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelYtBtn" class="px-5 py-2.5 text-gray-600 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition">မလုပ်တော့ပါ</button>
+                <button id="submitYtBtn" class="px-5 py-2.5 bg-rose-500 text-white rounded-xl font-medium shadow-md shadow-rose-500/30 hover:bg-rose-600 active:scale-95 transition flex items-center justify-center min-w-[100px]">
+                    <span id="ytBtnText">ထည့်မည်</span>
+                    <svg id="ytBtnLoading" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Header / Library Section -->
     <header class="px-5 pt-12 pb-4 flex justify-between items-end border-b border-gray-100 dark:border-gray-800 shrink-0">
@@ -89,9 +106,14 @@
             <h1 class="text-3xl font-bold tracking-tight text-rose-500">MM Music</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">သင့်ဖုန်းထဲမှ သီချင်းများ</p>
         </div>
-        <button id="addBtn" class="bg-rose-500 hover:bg-rose-600 active:scale-95 transition text-white p-3 rounded-full shadow-lg flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-        </button>
+        <div class="flex gap-2">
+            <button id="addYtBtn" class="bg-red-600 hover:bg-red-700 active:scale-95 transition text-white p-3 rounded-full shadow-lg flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M21.582 6.186a2.67 2.67 0 0 0-1.884-1.892c-1.662-.446-8.332-.446-8.332-.446s-6.67 0-8.332.446a2.67 2.67 0 0 0-1.884 1.892c-.445 1.67-.445 5.154-.445 5.154s0 3.484.445 5.154a2.67 2.67 0 0 0 1.884 1.892c1.662.446 8.332.446 8.332.446s6.67 0 8.332-.446a2.67 2.67 0 0 0 1.884-1.892c.445-1.67.445-5.154.445-5.154s0-3.484-.445-5.154zM10 15V7l6 4-6 4z"/></svg>
+            </button>
+            <button id="addBtn" class="bg-rose-500 hover:bg-rose-600 active:scale-95 transition text-white p-3 rounded-full shadow-lg flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </button>
+        </div>
         <!-- Hidden File Input -->
         <input type="file" id="fileInput" multiple accept="audio/*" class="hidden">
     </header>
@@ -101,19 +123,20 @@
         <div class="h-full flex flex-col items-center justify-center text-gray-400 text-center" id="emptyState">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 mb-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             <p class="text-lg font-medium">သီချင်းများ မရှိသေးပါ</p>
-            <p class="text-sm mt-2">အပေါ်ဘက်ရှိ + ခလုတ်ကိုနှိပ်ပြီး<br>ဖုန်းထဲမှ သီချင်းများကို ရွေးချယ်ပါ</p>
+            <p class="text-sm mt-2">အပေါ်ဘက်ရှိ + ခလုတ်များကိုနှိပ်ပြီး<br>ဖုန်း (သို့) YouTube မှ သီချင်းများကို ရွေးချယ်ပါ</p>
         </div>
     </main>
 
     <!-- Mini Player (Bottom Fixed) -->
     <div id="miniPlayer" class="fixed bottom-0 left-0 right-0 glass-panel border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between cursor-pointer translate-y-full transition-transform duration-300 z-40">
         <div class="flex items-center gap-3 flex-1 overflow-hidden" id="miniPlayerDetails">
-            <div class="w-12 h-12 rounded-md bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shrink-0 shadow-sm text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <div id="miniThumbContainer" class="w-12 h-12 rounded-md bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shrink-0 shadow-sm text-white overflow-hidden relative">
+                <svg id="miniIcon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <img id="miniThumbImg" src="" class="absolute inset-0 w-full h-full object-cover hidden" alt="Thumbnail">
             </div>
             <div class="flex flex-col overflow-hidden pr-2">
                 <span id="miniTitle" class="font-semibold text-sm truncate">သီချင်းအမည်</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">Local File</span>
+                <span id="miniSourceType" class="text-xs text-gray-500 dark:text-gray-400">Local File</span>
             </div>
         </div>
         <div class="flex items-center gap-4 shrink-0 px-2" id="miniControls">
@@ -129,7 +152,7 @@
     <!-- Full Screen Player (Apple Music Style Modal) -->
     <div id="fullPlayer" class="player-sheet fixed inset-0 z-50 bg-gray-100 dark:bg-[#121212] flex flex-col">
         <!-- Player Background Blur -->
-        <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40 blur-3xl">
+        <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40 blur-3xl" id="fullBgBlurContainer">
             <div class="w-full h-full bg-gradient-to-br from-rose-500/30 to-purple-600/30"></div>
         </div>
 
@@ -141,8 +164,9 @@
 
             <!-- Album Art -->
             <div class="flex-1 flex items-center justify-center py-4">
-                <div id="albumArtContainer" class="w-64 h-64 sm:w-80 sm:h-80 bg-gradient-to-br from-rose-500 to-indigo-600 rounded-xl album-shadow flex items-center justify-center transition-transform duration-500 text-white opacity-80">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <div id="albumArtContainer" class="w-64 h-64 sm:w-80 sm:h-80 bg-gradient-to-br from-rose-500 to-indigo-600 rounded-xl album-shadow flex items-center justify-center transition-transform duration-500 text-white opacity-80 overflow-hidden relative">
+                    <svg id="fullArtIcon" xmlns="http://www.w3.org/2000/svg" class="w-24 h-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    <img id="fullArtImg" src="" class="absolute inset-0 w-full h-full object-cover hidden" alt="Album Art">
                 </div>
             </div>
 
@@ -152,10 +176,10 @@
                 <div class="flex justify-between items-center mb-6">
                     <div class="flex flex-col overflow-hidden pr-4">
                         <h2 id="fullTitle" class="text-2xl font-bold truncate">သီချင်းအမည်</h2>
-                        <p class="text-rose-500 text-lg font-medium mt-1 truncate">Unknown Artist</p>
+                        <p id="fullArtist" class="text-rose-500 text-lg font-medium mt-1 truncate">Unknown Artist</p>
                     </div>
                     <!-- Favorite Button -->
-                    <button id="favoriteBtn" class="text-gray-400 hover:text-rose-500 active:scale-90 transition flex items-center justify-center">
+                    <button id="favoriteBtn" class="text-gray-400 hover:text-rose-500 active:scale-90 transition flex items-center justify-center shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     </button>
                 </div>
@@ -177,7 +201,7 @@
                     <button id="fullPrevBtn" class="active:scale-90 transition flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
                     </button>
-                    <button id="fullPlayBtn" class="w-16 h-16 bg-black dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center active:scale-90 transition shadow-lg">
+                    <button id="fullPlayBtn" class="w-16 h-16 bg-black dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center active:scale-90 transition shadow-lg shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 ml-1" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
                     </button>
                     <button id="fullNextBtn" class="active:scale-90 transition flex items-center justify-center">
@@ -191,16 +215,41 @@
         </div>
     </div>
 
-    <!-- Hidden Audio Element -->
+    <!-- Hidden Audio Elements -->
     <audio id="audioPlayer"></audio>
+    <!-- Hidden YT Player Container (Uses opacity to keep IFrame API working properly on mobile) -->
+    <div id="ytPlayerContainer" style="position: absolute; width: 1px; height: 1px; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;"></div>
 
     <!-- JavaScript Logic -->
     <script>
+        // Load YouTube IFrame API Dynamically
+        const ytScriptTag = document.createElement('script');
+        ytScriptTag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
+
+        let ytPlayer;
+        let isYtReady = false;
+
+        function onYouTubeIframeAPIReady() {
+            ytPlayer = new YT.Player('ytPlayerContainer', {
+                height: '100',
+                width: '100',
+                playerVars: { 'autoplay': 0, 'controls': 0, 'playsinline': 1, 'fs': 0, 'rel': 0 },
+                events: {
+                    'onReady': () => { isYtReady = true; console.log("YT Player Ready"); },
+                    'onStateChange': onYtStateChange,
+                    'onError': onYtError
+                }
+            });
+        }
+
         // SVG Icon Data for dynamic injection
         const svgIcons = {
             play: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 ml-1" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
             pause: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
             musicNote: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+            youtubeNote: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M21.582 6.186a2.67 2.67 0 0 0-1.884-1.892c-1.662-.446-8.332-.446-8.332-.446s-6.67 0-8.332.446a2.67 2.67 0 0 0-1.884 1.892c-.445 1.67-.445 5.154-.445 5.154s0 3.484.445 5.154a2.67 2.67 0 0 0 1.884 1.892c1.662.446 8.332.446 8.332.446s6.67 0 8.332-.446a2.67 2.67 0 0 0 1.884-1.892c.445-1.67.445-5.154.445-5.154s0-3.484-.445-5.154zM10 15V7l6 4-6 4z"/></svg>',
             equalizer: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-rose-500 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
             heartFill: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
             heartOutline: '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
@@ -215,6 +264,7 @@
         let isPlaying = false;
         let isShuffle = false;
         let repeatMode = 0; // 0: none, 1: all, 2: one
+        let ytTrackerInterval = null;
         
         // Load favorites from LocalStorage
         const savedFavs = JSON.parse(localStorage.getItem('mm_favorites') || '[]');
@@ -223,46 +273,67 @@
         // DOM Elements
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.getElementById('addBtn');
+        const addYtBtn = document.getElementById('addYtBtn');
         const songList = document.getElementById('songList');
         const emptyState = document.getElementById('emptyState');
         const audioPlayer = document.getElementById('audioPlayer');
         
+        // Modals
+        const ytModal = document.getElementById('ytModal');
+        const ytModalContent = document.getElementById('ytModalContent');
+        const cancelYtBtn = document.getElementById('cancelYtBtn');
+        const submitYtBtn = document.getElementById('submitYtBtn');
+        const ytUrlInput = document.getElementById('ytUrlInput');
+        const ytErrorMsg = document.getElementById('ytErrorMsg');
+        const ytBtnText = document.getElementById('ytBtnText');
+        const ytBtnLoading = document.getElementById('ytBtnLoading');
+
         const miniPlayer = document.getElementById('miniPlayer');
         const miniPlayerDetails = document.getElementById('miniPlayerDetails');
         const miniTitle = document.getElementById('miniTitle');
+        const miniSourceType = document.getElementById('miniSourceType');
         const miniPlayBtn = document.getElementById('miniPlayBtn');
         const miniNextBtn = document.getElementById('miniNextBtn');
+        const miniIcon = document.getElementById('miniIcon');
+        const miniThumbImg = document.getElementById('miniThumbImg');
         
         const fullPlayer = document.getElementById('fullPlayer');
         const closeFullPlayerBtn = document.getElementById('closeFullPlayerBtn');
         const fullTitle = document.getElementById('fullTitle');
+        const fullArtist = document.getElementById('fullArtist');
         const fullPlayBtn = document.getElementById('fullPlayBtn');
         const fullNextBtn = document.getElementById('fullNextBtn');
         const fullPrevBtn = document.getElementById('fullPrevBtn');
         const shuffleBtn = document.getElementById('shuffleBtn');
         const repeatBtn = document.getElementById('repeatBtn');
         const favoriteBtn = document.getElementById('favoriteBtn');
+        const fullArtIcon = document.getElementById('fullArtIcon');
+        const fullArtImg = document.getElementById('fullArtImg');
+        const albumArtContainer = document.getElementById('albumArtContainer');
+        const fullBgBlurContainer = document.getElementById('fullBgBlurContainer');
         
         const progressBar = document.getElementById('progressBar');
         const currentTimeEl = document.getElementById('currentTime');
         const durationTimeEl = document.getElementById('durationTime');
-        const albumArtContainer = document.getElementById('albumArtContainer');
 
-        // Clean filename (remove extension)
+        // Utils
         const formatTitle = (name) => name.replace(/\.[^/.]+$/, "");
-
-        // Format time (seconds to M:SS)
         const formatTime = (seconds) => {
-            if (isNaN(seconds)) return "0:00";
+            if (isNaN(seconds) || seconds < 0) return "0:00";
             const m = Math.floor(seconds / 60);
             const s = Math.floor(seconds % 60);
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         };
+        const extractYtId = (url) => {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : false;
+        };
 
         // ==========================================
-        // IndexedDB for storing audio files persistently
+        // IndexedDB for storing audio files & YT links
         // ==========================================
-        const dbName = "MMMusicDB";
+        const dbName = "MMMusicDB_v2"; // v2 for updated schema support
         let db;
 
         const initDB = () => {
@@ -271,27 +342,20 @@
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
                     if (!db.objectStoreNames.contains('tracks')) {
-                        db.createObjectStore('tracks', { keyPath: 'name' });
+                        // We'll use a generated 'id' as key to allow multiple same names
+                        db.createObjectStore('tracks', { keyPath: 'id' });
                     }
                 };
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve();
-                };
+                request.onsuccess = (e) => { db = e.target.result; resolve(); };
                 request.onerror = (e) => reject(e.target.error);
             });
         };
 
-        const saveTracksToDB = async (files) => {
+        const saveTracksToDB = async (tracks) => {
             const tx = db.transaction('tracks', 'readwrite');
             const store = tx.objectStore('tracks');
-            files.forEach(f => {
-                // Save file blob and its name
-                store.put({ name: f.name, file: f });
-            });
-            return new Promise(resolve => {
-                tx.oncomplete = () => resolve();
-            });
+            tracks.forEach(track => store.put(track));
+            return new Promise(resolve => { tx.oncomplete = () => resolve(); });
         };
 
         const loadTracksFromDB = async () => {
@@ -299,51 +363,145 @@
             const store = tx.objectStore('tracks');
             const request = store.getAll();
             return new Promise(resolve => {
-                request.onsuccess = () => {
-                    // map back to array of files
-                    resolve(request.result.map(record => record.file));
-                };
+                request.onsuccess = () => resolve(request.result);
             });
         };
 
         // Initialize App Database and Load existing songs
         window.addEventListener('DOMContentLoaded', async () => {
-            // Clean hash URL to prevent auto-opening player on refresh
             if (window.location.hash === '#player') {
                 history.replaceState(null, '', window.location.pathname);
             }
-            
             try {
                 await initDB();
-                const savedFiles = await loadTracksFromDB();
-                if (savedFiles && savedFiles.length > 0) {
-                    playlist = savedFiles;
+                const savedTracks = await loadTracksFromDB();
+                if (savedTracks && savedTracks.length > 0) {
+                    playlist = savedTracks;
                     renderList();
                 }
-            } catch (err) {
-                console.error("Failed to load tracks from storage:", err);
-            }
+            } catch (err) { console.error("Failed to load tracks:", err); }
         });
 
 
-        // Initialize / Add Files
+        // ==========================================
+        // Local File Handling
+        // ==========================================
         addBtn.addEventListener('click', () => fileInput.click());
 
         fileInput.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files).filter(f => f.type.startsWith('audio/'));
             if (files.length === 0) return;
             
-            // Avoid duplicates in current session list
-            const newFiles = files.filter(f => !playlist.some(p => p.name === f.name));
+            const newTracks = files.map(f => ({
+                id: 'local_' + Date.now() + '_' + f.name,
+                type: 'local',
+                name: f.name,
+                file: f
+            }));
             
-            playlist = [...playlist, ...newFiles];
-            renderList();
+            // Avoid exact name duplicates locally
+            const filteredNew = newTracks.filter(n => !playlist.some(p => p.name === n.name && p.type === 'local'));
             
-            // Save newly added files to IndexedDB
-            await saveTracksToDB(newFiles);
+            if (filteredNew.length > 0) {
+                playlist = [...playlist, ...filteredNew];
+                renderList();
+                await saveTracksToDB(filteredNew);
+            }
         });
 
+        // ==========================================
+        // YouTube Modal & Adding Logic
+        // ==========================================
+        const openYtModal = () => {
+            ytUrlInput.value = '';
+            ytErrorMsg.textContent = '';
+            ytModal.classList.remove('hidden');
+            ytModal.classList.add('flex');
+            // Animate in
+            setTimeout(() => {
+                ytModal.classList.remove('opacity-0');
+                ytModalContent.classList.remove('scale-95');
+                ytModalContent.classList.add('scale-100');
+            }, 10);
+        };
+        const closeYtModal = () => {
+            ytModal.classList.add('opacity-0');
+            ytModalContent.classList.remove('scale-100');
+            ytModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                ytModal.classList.add('hidden');
+                ytModal.classList.remove('flex');
+            }, 300);
+        };
+
+        addYtBtn.addEventListener('click', openYtModal);
+        cancelYtBtn.addEventListener('click', closeYtModal);
+        ytModal.addEventListener('click', (e) => { if (e.target === ytModal) closeYtModal(); });
+
+        submitYtBtn.addEventListener('click', async () => {
+            const url = ytUrlInput.value.trim();
+            if(!url) return;
+            const videoId = extractYtId(url);
+            
+            if (!videoId) {
+                ytErrorMsg.textContent = "YouTube Link မှားယွင်းနေပါသည်။ ပြန်စစ်ကြည့်ပါ။";
+                return;
+            }
+
+            // Check duplicate
+            if (playlist.some(p => p.type === 'youtube' && p.ytId === videoId)) {
+                ytErrorMsg.textContent = "ဤသီချင်းစာရင်းထဲတွင် ရှိပြီးသားဖြစ်ပါသည်။";
+                return;
+            }
+
+            ytErrorMsg.textContent = "";
+            ytBtnText.classList.add('hidden');
+            ytBtnLoading.classList.remove('hidden');
+            submitYtBtn.disabled = true;
+
+            try {
+                let title = `YouTube Audio`;
+                let artist = 'YouTube';
+                
+                try {
+                    // Fetch title from Noembed (Public API, no API key needed)
+                    const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+                    const data = await res.json();
+                    if(data.title) title = data.title;
+                    if(data.author_name) artist = data.author_name;
+                } catch (e) {
+                    console.log("Noembed API failed, using fallback title.");
+                }
+                
+                const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+                const newTrack = {
+                    id: 'yt_' + videoId,
+                    type: 'youtube',
+                    ytId: videoId,
+                    name: title,
+                    thumb: thumb,
+                    artist: artist
+                };
+
+                playlist.push(newTrack);
+                renderList();
+                await saveTracksToDB([newTrack]);
+                closeYtModal();
+                
+            } catch (err) {
+                ytErrorMsg.textContent = "အချက်အလက်ရယူရန် အခက်အခဲရှိနေပါသည်။";
+            } finally {
+                ytBtnText.classList.remove('hidden');
+                ytBtnLoading.classList.add('hidden');
+                submitYtBtn.disabled = false;
+            }
+        });
+
+
+        // ==========================================
         // Render Playlist UI
+        // ==========================================
         function renderList() {
             if (playlist.length === 0) {
                 emptyState.style.display = 'flex';
@@ -352,23 +510,33 @@
             emptyState.style.display = 'none';
             songList.innerHTML = '';
             
-            playlist.forEach((file, index) => {
-                const title = formatTitle(file.name);
-                const isCurrent = (index === currentIndex && (isPlaying || audioPlayer.src));
-                const isFavorite = favoriteSongs.has(file.name);
+            playlist.forEach((track, index) => {
+                const title = formatTitle(track.name);
+                const isCurrent = (index === currentIndex && isAnyPlayingOrLoaded());
+                const isFavorite = favoriteSongs.has(track.id);
 
                 const item = document.createElement('div');
                 item.className = `flex items-center gap-3 p-3 rounded-xl cursor-pointer transition mb-1 ${isCurrent ? 'bg-rose-50 dark:bg-rose-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-900/50'}`;
+                
+                let iconHtml = track.type === 'youtube' ? svgIcons.youtubeNote : svgIcons.musicNote;
+                if (isCurrent && isPlaying) iconHtml = svgIcons.equalizer;
+
+                let thumbHtml = '';
+                if (track.type === 'youtube' && track.thumb) {
+                    thumbHtml = `<img src="${track.thumb}" class="absolute inset-0 w-full h-full object-cover opacity-30" alt="">`;
+                }
+
                 item.innerHTML = `
-                    <div class="w-12 h-12 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 relative">
-                        ${isCurrent && isPlaying ? svgIcons.equalizer : svgIcons.musicNote}
+                    <div class="w-12 h-12 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 relative overflow-hidden">
+                        ${thumbHtml}
+                        <div class="relative z-10">${iconHtml}</div>
                     </div>
                     <div class="flex flex-col flex-1 overflow-hidden border-b border-gray-100 dark:border-gray-800 pb-3 mt-3">
                         <div class="flex justify-between items-center">
                             <span class="font-medium text-[15px] truncate pr-2 ${isCurrent ? 'text-rose-500' : ''}">${title}</span>
                             ${isFavorite ? svgIcons.heartFillSmall : ''}
                         </div>
-                        <span class="text-xs text-gray-500 mt-0.5">Local Audio</span>
+                        <span class="text-xs text-gray-500 mt-0.5">${track.type === 'youtube' ? 'YouTube' : 'Local Audio'}</span>
                     </div>
                 `;
                 item.onclick = () => loadAndPlaySong(index);
@@ -376,44 +544,100 @@
             });
         }
 
-        // Playback Logic
+        function isAnyPlayingOrLoaded() {
+            const track = playlist[currentIndex];
+            if (!track) return false;
+            if (track.type === 'youtube') {
+                try {
+                    return isPlaying || (isYtReady && ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() !== -1);
+                } catch(e) { return false; }
+            }
+            return isPlaying || !!audioPlayer.src;
+        }
+
+        // ==========================================
+        // Playback Core Logic
+        // ==========================================
         function loadAndPlaySong(index) {
             if (playlist.length === 0) return;
             
-            if (audioPlayer.src) {
-                URL.revokeObjectURL(audioPlayer.src); // Free memory
+            currentIndex = index;
+            const track = playlist[currentIndex];
+            
+            // Stop both players first
+            audioPlayer.pause();
+            if (audioPlayer.src) URL.revokeObjectURL(audioPlayer.src);
+            audioPlayer.src = "";
+            
+            if (isYtReady && ytPlayer && ytPlayer.stopVideo) {
+                try { ytPlayer.stopVideo(); } catch(e){}
+            }
+
+            if (track.type === 'youtube') {
+                if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
+                    ytPlayer.loadVideoById(track.ytId);
+                    // YouTube Iframe API auto-plays when loadVideoById is called
+                } else {
+                    // Try again if API not ready yet
+                    setTimeout(() => loadAndPlaySong(index), 1000);
+                    return;
+                }
+            } else {
+                // Local File
+                try {
+                    const objectUrl = URL.createObjectURL(track.file);
+                    audioPlayer.src = objectUrl;
+                    audioPlayer.play().catch(e => console.log("Autoplay blocked:", e));
+                } catch (e) {
+                    console.error("Error loading local file:", e);
+                    alert("ဖိုင်ဖွင့်၍မရပါ။ ဖိုင်ပျက်နေခြင်း သို့မဟုတ် Browser မှ ပိတ်ထားခြင်းဖြစ်နိုင်ပါသည်။");
+                }
             }
             
-            currentIndex = index;
-            const file = playlist[currentIndex];
-            const objectUrl = URL.createObjectURL(file);
-            audioPlayer.src = objectUrl;
-            audioPlayer.play();
-            
-            updateUI(file);
-            setupMediaSession(file);
+            updateUI(track);
+            setupMediaSession(track);
+            startYtTracker();
         }
 
         function togglePlay() {
-            if (audioPlayer.paused) {
-                if (!audioPlayer.src && playlist.length > 0) loadAndPlaySong(0);
-                else audioPlayer.play();
+            if (playlist.length === 0) return;
+            const track = playlist[currentIndex];
+
+            if (track.type === 'youtube') {
+                if (!isYtReady || !ytPlayer || !ytPlayer.getPlayerState) return;
+                try {
+                    const state = ytPlayer.getPlayerState();
+                    if (state === 1) {
+                        ytPlayer.pauseVideo();
+                    } else {
+                        if (state === -1 || state === 5) ytPlayer.loadVideoById(track.ytId);
+                        else ytPlayer.playVideo();
+                    }
+                } catch(e) { console.error(e); }
             } else {
-                audioPlayer.pause();
+                if (audioPlayer.paused) {
+                    if (!audioPlayer.src) loadAndPlaySong(currentIndex);
+                    else audioPlayer.play().catch(e => console.log("Autoplay blocked:", e));
+                } else {
+                    audioPlayer.pause();
+                }
             }
         }
 
         function playNext(isManual = true) {
             if (playlist.length === 0) return;
 
-            // Handle Repeat One if auto advancing
             if (!isManual && repeatMode === 2) {
-                audioPlayer.currentTime = 0;
-                audioPlayer.play();
+                // Repeat One
+                const track = playlist[currentIndex];
+                if (track.type === 'youtube' && isYtReady && ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(0);
+                else audioPlayer.currentTime = 0;
+                
+                if (track.type === 'local') audioPlayer.play().catch(e => console.log("Play blocked", e));
+                else if (isYtReady && ytPlayer && ytPlayer.playVideo) ytPlayer.playVideo();
                 return;
             }
 
-            // Handle Shuffle
             if (isShuffle) {
                 let nextIndex = currentIndex;
                 while (nextIndex === currentIndex && playlist.length > 1) {
@@ -423,9 +647,9 @@
                 return;
             }
 
-            // Normal Next
             if (!isManual && repeatMode === 0 && currentIndex === playlist.length - 1) {
-                audioPlayer.pause(); // Stop at end of playlist
+                isPlaying = false;
+                updatePlayPauseIcons(); // Stop at end
                 return;
             }
 
@@ -436,38 +660,122 @@
         function playPrev() {
             if (playlist.length === 0) return;
             
-            if (audioPlayer.currentTime > 3) {
-                // Restart song if played for a while
-                audioPlayer.currentTime = 0;
+            let curTime = 0;
+            const track = playlist[currentIndex];
+            try {
+                if (track.type === 'youtube' && isYtReady && ytPlayer && ytPlayer.getCurrentTime) curTime = ytPlayer.getCurrentTime();
+                else curTime = audioPlayer.currentTime;
+            } catch(e) {}
+
+            if (curTime > 3) {
+                if (track.type === 'youtube' && isYtReady && ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(0);
+                else audioPlayer.currentTime = 0;
             } else {
-                // Go to previous song
                 currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
                 loadAndPlaySong(currentIndex);
             }
         }
 
-        // Favorite Logic
+        // ==========================================
+        // Event Listeners for Audio & YouTube
+        // ==========================================
+        audioPlayer.addEventListener('play', () => { isPlaying = true; updatePlayPauseIcons(); });
+        audioPlayer.addEventListener('pause', () => { isPlaying = false; updatePlayPauseIcons(); });
+        audioPlayer.addEventListener('ended', () => playNext(false));
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (playlist[currentIndex]?.type === 'youtube') return; // Ignore if YT is active
+            updateProgress(audioPlayer.currentTime, audioPlayer.duration);
+        });
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            if (playlist[currentIndex]?.type === 'youtube') return;
+            durationTimeEl.textContent = formatTime(audioPlayer.duration);
+        });
+
+        function onYtStateChange(event) {
+            if (playlist[currentIndex]?.type !== 'youtube') return;
+            
+            // YT.PlayerState: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued).
+            if (event.data === 1) {
+                isPlaying = true;
+                updatePlayPauseIcons();
+            } else if (event.data === 2 || event.data === -1) {
+                isPlaying = false;
+                updatePlayPauseIcons();
+            } else if (event.data === 0) {
+                playNext(false); // Ended
+            }
+        }
+        function onYtError(event) {
+            console.error("YouTube Error: ", event.data);
+            playNext(true); // Skip broken video
+        }
+
+        // Tracking YT Progress
+        function startYtTracker() {
+            clearInterval(ytTrackerInterval);
+            ytTrackerInterval = setInterval(() => {
+                if (playlist[currentIndex]?.type !== 'youtube') return;
+                if (!isYtReady || !isPlaying || !ytPlayer || !ytPlayer.getCurrentTime) return;
+                
+                try {
+                    const cur = ytPlayer.getCurrentTime();
+                    const dur = ytPlayer.getDuration();
+                    updateProgress(cur, dur);
+                } catch(e){}
+            }, 500);
+        }
+
+        function updateProgress(cur, dur) {
+            currentTimeEl.textContent = formatTime(cur);
+            if (!isNaN(dur) && dur > 0) {
+                durationTimeEl.textContent = formatTime(dur);
+                progressBar.value = (cur / dur) * 100;
+            } else {
+                durationTimeEl.textContent = "-:--";
+            }
+        }
+
+        // Progress Bar Interaction
+        progressBar.addEventListener('input', (e) => {
+            const track = playlist[currentIndex];
+            if (!track) return;
+            
+            const val = e.target.value / 100;
+            
+            if (track.type === 'youtube') {
+                if (isYtReady && ytPlayer && ytPlayer.getDuration) {
+                    try {
+                        const dur = ytPlayer.getDuration();
+                        if (dur) ytPlayer.seekTo(val * dur, true);
+                    } catch(e){}
+                }
+            } else {
+                const dur = audioPlayer.duration;
+                if (!isNaN(dur)) audioPlayer.currentTime = val * dur;
+            }
+        });
+
+
+        // ==========================================
+        // UI & Favorite Logic
+        // ==========================================
         function toggleFavorite() {
             if (playlist.length === 0) return;
-            const currentFileName = playlist[currentIndex].name;
+            const trackId = playlist[currentIndex].id;
             
-            if (favoriteSongs.has(currentFileName)) {
-                favoriteSongs.delete(currentFileName);
-            } else {
-                favoriteSongs.add(currentFileName);
-            }
-            // Save changes to localStorage
+            if (favoriteSongs.has(trackId)) favoriteSongs.delete(trackId);
+            else favoriteSongs.add(trackId);
+            
             localStorage.setItem('mm_favorites', JSON.stringify([...favoriteSongs]));
-            
             updateFavoriteUI();
-            renderList(); // Update list view heart icon
+            renderList();
         }
 
         function updateFavoriteUI() {
             if (playlist.length === 0) return;
-            const currentFileName = playlist[currentIndex].name;
+            const trackId = playlist[currentIndex].id;
             
-            if (favoriteSongs.has(currentFileName)) {
+            if (favoriteSongs.has(trackId)) {
                 favoriteBtn.innerHTML = svgIcons.heartFill;
                 favoriteBtn.classList.add('text-rose-500');
                 favoriteBtn.classList.remove('text-gray-400');
@@ -478,66 +786,60 @@
             }
         }
 
-        // UI Updates
-        function updateUI(file) {
-            const title = formatTitle(file.name);
+        function updateUI(track) {
+            const title = formatTitle(track.name);
+            const artistText = track.artist || 'Unknown Artist';
+            const typeText = track.type === 'youtube' ? 'YouTube' : 'Local File';
+            
             miniTitle.textContent = title;
             fullTitle.textContent = title;
+            miniSourceType.textContent = typeText;
+            fullArtist.textContent = artistText;
             miniPlayer.classList.remove('translate-y-full');
             
+            // Set Album Art / Thumbnails
+            if (track.type === 'youtube' && track.thumb) {
+                miniIcon.classList.add('hidden');
+                miniThumbImg.src = track.thumb;
+                miniThumbImg.classList.remove('hidden');
+                
+                fullArtIcon.classList.add('hidden');
+                fullArtImg.src = track.thumb;
+                fullArtImg.classList.remove('hidden');
+                
+                // Add ambient background
+                fullBgBlurContainer.innerHTML = `<img src="${track.thumb}" class="w-full h-full object-cover blur-3xl opacity-50 scale-150">`;
+            } else {
+                miniThumbImg.classList.add('hidden');
+                miniIcon.classList.remove('hidden');
+                
+                fullArtImg.classList.add('hidden');
+                fullArtIcon.classList.remove('hidden');
+                
+                fullBgBlurContainer.innerHTML = `<div class="w-full h-full bg-gradient-to-br from-rose-500/30 to-purple-600/30"></div>`;
+            }
+
             updateFavoriteUI();
-            renderList(); // Refresh list to show active state
+            renderList();
         }
 
         function updatePlayPauseIcons() {
             miniPlayBtn.innerHTML = isPlaying ? svgIcons.pause : svgIcons.play;
             fullPlayBtn.innerHTML = isPlaying ? svgIcons.pause : svgIcons.play;
             
-            if (isPlaying) {
-                albumArtContainer.style.transform = 'scale(1)';
-            } else {
-                albumArtContainer.style.transform = 'scale(0.85)';
-            }
-            renderList(); // Update equalizer icon in list
+            if (isPlaying) albumArtContainer.style.transform = 'scale(1)';
+            else albumArtContainer.style.transform = 'scale(0.85)';
+            renderList();
         }
 
-        // Event Listeners for Audio
-        audioPlayer.addEventListener('play', () => { isPlaying = true; updatePlayPauseIcons(); });
-        audioPlayer.addEventListener('pause', () => { isPlaying = false; updatePlayPauseIcons(); });
-        audioPlayer.addEventListener('ended', () => playNext(false)); // Auto advance
-        
-        audioPlayer.addEventListener('timeupdate', () => {
-            const cur = audioPlayer.currentTime;
-            const dur = audioPlayer.duration;
-            currentTimeEl.textContent = formatTime(cur);
-            if (!isNaN(dur)) {
-                durationTimeEl.textContent = formatTime(dur);
-                progressBar.value = (cur / dur) * 100;
-            }
-        });
-
-        audioPlayer.addEventListener('loadedmetadata', () => {
-            durationTimeEl.textContent = formatTime(audioPlayer.duration);
-        });
-
-        // Progress Bar Interaction
-        progressBar.addEventListener('input', (e) => {
-            const dur = audioPlayer.duration;
-            if (!isNaN(dur)) {
-                audioPlayer.currentTime = (e.target.value / 100) * dur;
-            }
-        });
-
-        // Button Listeners
+        // Bind Buttons
         miniPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
         miniNextBtn.addEventListener('click', (e) => { e.stopPropagation(); playNext(true); });
-        
         fullPlayBtn.addEventListener('click', togglePlay);
         fullNextBtn.addEventListener('click', () => playNext(true));
         fullPrevBtn.addEventListener('click', playPrev);
         favoriteBtn.addEventListener('click', toggleFavorite);
 
-        // Shuffle & Repeat Handlers
         shuffleBtn.addEventListener('click', () => {
             isShuffle = !isShuffle;
             shuffleBtn.classList.toggle('text-rose-500', isShuffle);
@@ -547,15 +849,12 @@
         repeatBtn.addEventListener('click', () => {
             repeatMode = (repeatMode + 1) % 3;
             if (repeatMode === 0) {
-                // No Repeat
                 repeatBtn.innerHTML = svgIcons.repeat;
                 repeatBtn.className = 'text-gray-400 hover:text-white transition active:scale-90 flex items-center justify-center';
             } else if (repeatMode === 1) {
-                // Repeat All
                 repeatBtn.innerHTML = svgIcons.repeat;
                 repeatBtn.className = 'text-rose-500 transition active:scale-90 flex items-center justify-center';
             } else {
-                // Repeat One
                 repeatBtn.innerHTML = svgIcons.repeatOnce;
                 repeatBtn.className = 'text-rose-500 transition active:scale-90 flex items-center justify-center';
             }
@@ -564,40 +863,29 @@
         // ==========================================
         // Player Modals & Back Button (History API) Logic
         // ==========================================
-        
         miniPlayerDetails.addEventListener('click', () => {
             fullPlayer.classList.add('active');
-            // Add state to history so back button works
             history.pushState({ playerOpen: true }, '', '#player');
         });
         
         closeFullPlayerBtn.addEventListener('click', () => {
-            if (window.location.hash === '#player') {
-                // Go back in history which triggers popstate
-                history.back();
-            } else {
-                fullPlayer.classList.remove('active');
-            }
+            if (window.location.hash === '#player') history.back();
+            else fullPlayer.classList.remove('active');
         });
 
-        // Listen for phone Back button or swipe gesture
-        window.addEventListener('popstate', (e) => {
-            // If the hash is no longer #player, close the player modal
-            if (window.location.hash !== '#player') {
-                fullPlayer.classList.remove('active');
-            }
+        window.addEventListener('popstate', () => {
+            if (window.location.hash !== '#player') fullPlayer.classList.remove('active');
         });
 
         // Android/OS Lockscreen Controls (Media Session API)
-        function setupMediaSession(file) {
+        function setupMediaSession(track) {
             if ('mediaSession' in navigator) {
+                const artworkSrc = (track.type === 'youtube' && track.thumb) ? track.thumb : 'https://placehold.co/512x512/f43f5e/ffffff.png?text=MM';
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: formatTitle(file.name),
-                    artist: 'MM Music App',
-                    album: 'Local Storage',
-                    artwork: [
-                        { src: 'https://placehold.co/512x512/f43f5e/ffffff.png?text=MM', sizes: '512x512', type: 'image/png' }
-                    ]
+                    title: formatTitle(track.name),
+                    artist: track.artist || 'MM Music App',
+                    album: track.type === 'youtube' ? 'YouTube' : 'Local Storage',
+                    artwork: [{ src: artworkSrc, sizes: '512x512', type: 'image/jpeg' }]
                 });
                 navigator.mediaSession.setActionHandler('play', togglePlay);
                 navigator.mediaSession.setActionHandler('pause', togglePlay);
@@ -609,8 +897,6 @@
         // ==========================================
         // PWA Setup (Make it Installable via Chrome)
         // ==========================================
-        
-        // 1. Generate Manifest dynamically for single-file structure
         const manifestData = {
             "name": "MM Music",
             "short_name": "MM Music",
@@ -618,7 +904,7 @@
             "display": "standalone",
             "background_color": "#000000",
             "theme_color": "#f43f5e",
-            "description": "Local Audio Player",
+            "description": "Local & YouTube Audio Player",
             "icons": [{
                 "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23f43f5e'/><path d='M256 128v180a64 64 0 1064 64V192h80v-64H256z' fill='white'/></svg>",
                 "sizes": "512x512",
@@ -629,14 +915,12 @@
         const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
         document.getElementById('manifest').href = URL.createObjectURL(manifestBlob);
 
-        // 2. Register Service Worker dynamically
         if ('serviceWorker' in navigator) {
             const swCode = `
                 self.addEventListener('install', (e) => self.skipWaiting());
                 self.addEventListener('activate', (e) => self.clients.claim());
                 self.addEventListener('fetch', (e) => {
-                    // Minimal fetch handler required for PWA install prompt
-                    e.respondWith(fetch(e.request).catch(() => new Response('Offline')));
+                    // Empty fetch handler ensures PWA installability without breaking cross-origin media like YouTube.
                 });
             `;
             const swBlob = new Blob([swCode], { type: 'application/javascript' });
